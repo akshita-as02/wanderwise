@@ -252,7 +252,7 @@ export function ItineraryDisplay({ itinerary, onReset }: Props) {
             {/* Hotel Recommendations */}
             {itinerary.days[selectedDay].recommendedHotels && itinerary.days[selectedDay].recommendedHotels.length > 0 && (
               <div className="mt-12 pt-8 border-t border-white/30">
-                <h3 className="text-xl font-bold text-gray-800 mb-6">Where to Stay Tonight</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-6">Where to Stay Tonight (Dummy Data)</h3>
                 <div className="grid md:grid-cols-2 gap-6">
                   {itinerary.days[selectedDay].recommendedHotels.map(hotel => (
                     <div key={hotel.id} className="bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-sm rounded-2xl p-6 border border-white/30 hover:shadow-lg transition-all duration-200">

@@ -15,14 +15,42 @@ import {
 import Link from 'next/link'
 
 const destinations = [
-  { name: 'Tokyo, Japan', flag: '🇯🇵', popular: true },
-  { name: 'Paris, France', flag: '🇫🇷', popular: true },
-  { name: 'Bali, Indonesia', flag: '🇮🇩', popular: true },
-  { name: 'New York, USA', flag: '🇺🇸', popular: false },
-  { name: 'London, UK', flag: '🇬🇧', popular: false },
-  { name: 'Rome, Italy', flag: '🇮🇹', popular: true },
-  { name: 'Barcelona, Spain', flag: '🇪🇸', popular: false },
-  { name: 'Amsterdam, Netherlands', flag: '🇳🇱', popular: false },
+  { 
+    id: 'tokyo',
+    name: 'Tokyo, Japan',
+    flag: '🇯🇵',
+    popular: true,
+    avgCost: 2500,
+    currency: 'JPY',
+    timezone: 'Asia/Tokyo'
+  },
+  { 
+    id: 'paris',
+    name: 'Paris, France',
+    flag: '🇫🇷',
+    popular: true,
+    avgCost: 3000,
+    currency: 'EUR',
+    timezone: 'Europe/Paris'
+  },
+  { 
+    id: 'bali',
+    name: 'Bali, Indonesia',
+    flag: '🇮🇩',
+    popular: true,
+    avgCost: 2000,
+    currency: 'IDR',
+    timezone: 'Asia/Makassar'
+  },
+  { 
+    id: 'newyork',
+    name: 'New York, USA',
+    flag: '🇺🇸',
+    popular: false,
+    avgCost: 3500,
+    currency: 'USD',
+    timezone: 'America/New_York'
+  }
 ]
 
 const interestOptions = [
@@ -45,9 +73,12 @@ const tripStyles = [
 
 export default function WanderWisePage() {
   const [currentView, setCurrentView] = useState<'home' | 'form' | 'itinerary'>('home')
+  const [selectedDestination, setSelectedDestination] = useState(destinations[0])
+  const [destinationInput, setDestinationInput] = useState('')
+  const [budget, setBudget] = useState(selectedDestination.avgCost)
+  const [numberOfDays, setNumberOfDays] = useState(5)
   const [formData, setFormData] = useState({
     origin: '',
-    destination: '',
     startDate: '',
     endDate: '',
     budget: 2000,
@@ -76,49 +107,56 @@ export default function WanderWisePage() {
     }))
   }
 
-  const handleGenerateItinerary = async () => {
+  const handleGenerateItinerary = async (preferences: any) => {
+    console.log('handleGenerateItinerary called with preferences:', preferences);
     // Check if user is logged in for full features
     if (!user) {
       setAuthModal({ isOpen: true, mode: 'login' })
+      console.error('Validation failed: user not logged in');
       return
     }
 
-    // Validation
-    if (!formData.origin.trim()) {
-      setError('Please enter your origin city')
+    // Validation using the passed preferences object
+    // Removed origin validation
+    // if (!preferences.origin || !preferences.origin.trim()) {
+    //   setError('Please enter your origin city')
+    //   console.error('Validation failed: origin missing in preferences');
+    //   return
+    // }
+    // Validate destination input
+    if (!preferences.destination || !preferences.destination.trim()) { // Use preferences.destination
+      setError('Please enter a destination')
+      console.error('Validation failed: destination missing in preferences');
       return
     }
-    if (!formData.destination.trim()) {
-      setError('Please select a destination')
+
+    if (preferences.numberOfDays < 1) {
+      setError('Number of days must be at least 1')
+      console.error('Validation failed: invalid number of days in preferences');
       return
     }
-    if (!formData.startDate || !formData.endDate) {
-      setError('Please select travel dates')
-      return
-    }
-    if (formData.interests.length === 0) {
+    if (!preferences.interests || preferences.interests.length === 0) {
       setError('Please select at least one interest')
+      console.error('Validation failed: no interests selected in preferences');
       return
     }
 
     setLoading(true)
     setError(null)
     setLoadingStep('Analyzing your preferences...')
-    
+    console.log('Validation passed, setting loading state.');
+
     try {
-      // Convert form data to TravelPreferences
-      const preferences: TravelPreferences = {
-        ...formData,
-        startDate: new Date(formData.startDate),
-        endDate: new Date(formData.endDate)
-      }
+      // Preferences object is already prepared and passed as argument
+
+      console.log('Sending preferences to API:', preferences);
 
       // Simulate loading steps
       setTimeout(() => setLoadingStep('Consulting Gemini AI...'), 1000)
       setTimeout(() => setLoadingStep('Finding hidden gems...'), 2000)
       setTimeout(() => setLoadingStep('Optimizing your route...'), 3000)
 
-      // Call the real API
+      // Call the API
       const response = await fetch('/api/generate-itinerary', {
         method: 'POST',
         headers: {
@@ -126,22 +164,25 @@ export default function WanderWisePage() {
         },
         body: JSON.stringify(preferences),
       })
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.details || 'Failed to generate itinerary')
-      }
-      
+
       const data = await response.json()
+
+      if (!response.ok) {
+        console.error('API responded with !response.ok, data:', data);
+        throw new Error(data.details || data.error || 'Failed to generate itinerary')
+      }
+
+      console.log('API responded with OK, data:', data);
       setItinerary(data)
       setCurrentView('itinerary')
-      
+
     } catch (err) {
-      console.error('Itinerary generation error:', err)
+      console.error('Itinerary generation caught error:', err);
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
     } finally {
       setLoading(false)
       setLoadingStep('')
+      console.log('Finished itinerary generation process.');
     }
   }
 
@@ -149,25 +190,56 @@ export default function WanderWisePage() {
     setCurrentView('home')
     setItinerary(null)
     setError(null)
+    // Reset form data and new state variables
+    setFormData({
+      origin: '', // Keeping origin in form data state for consistency, but not used in API call
+      startDate: '',
+      endDate: '',
+      budget: selectedDestination.avgCost,
+      travelers: 2,
+      interests: [] as string[],
+      tripStyle: 'cultural' as const,
+      travelMode: 'walking' as const
+    })
+    setDestinationInput(''); // Reset destination input
+    setBudget(selectedDestination.avgCost);
+    setNumberOfDays(5);
   }
 
   // Quick demo with real API call
   const handleQuickDemo = async () => {
+    console.log('EXPLORE button clicked. Current destinationInput:', destinationInput);
+    // Prepare the full preferences object for the API call
     const demoPreferences = {
-      origin: 'Los Angeles, CA',
-      destination: 'Tokyo, Japan',
-      startDate: '2024-04-15',
-      endDate: '2024-04-20',
-      budget: 2500,
+      // origin: 'Los Angeles, CA', // Removed origin from demo preferences
+      destination: destinationInput, // Use destinationInput directly
+      budget: budget,
       travelers: 2,
       interests: ['culture', 'food', 'adventure'],
       tripStyle: 'cultural' as const,
-      travelMode: 'walking' as const
+      travelMode: 'walking' as const,
+      numberOfDays: numberOfDays,
+      // currency: selectedDestination.currency, // Removed currency
+      // timezone: selectedDestination.timezone // Removed timezone
     }
-    
-    setFormData(demoPreferences)
-    await handleGenerateItinerary()
-  }
+
+    // Call the main generation function with the prepared preferences
+    await handleGenerateItinerary(demoPreferences); 
+
+    // Optionally, update states AFTER the generation if needed for UI consistency
+    // For this demo, we might want to pre-fill the main form if user switches
+     setFormData(prev => ({
+       ...prev,
+       // origin: demoPreferences.origin, // Removed origin update
+       interests: demoPreferences.interests,
+       tripStyle: demoPreferences.tripStyle,
+       travelMode: demoPreferences.travelMode,
+      // destination, budget, travelers, startDate, endDate are handled by dedicated states
+     }));
+    setDestinationInput(demoPreferences.destination);
+    setBudget(demoPreferences.budget);
+    setNumberOfDays(demoPreferences.numberOfDays);
+  };
 
   const handleLogout = async () => {
     try {
@@ -252,15 +324,80 @@ export default function WanderWisePage() {
               </div>
             )}
 
-            {/* Form sections would go here - same as before */}
-            <div className="text-center">
-              <p className="text-gray-600 mb-8">Form sections implementation...</p>
-              <button
-                onClick={handleGenerateItinerary}
-                className="px-8 py-4 bg-gradient-to-r from-orange-400 to-pink-400 text-white rounded-2xl font-bold hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-              >
-                Generate My AI Trip Plan
-              </button>
+            <div className="bg-white/70 backdrop-blur-md rounded-3xl p-8 shadow-xl border border-white/40 space-y-6">
+
+              <div>
+                <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">Destination</label>
+                <input
+                  type="text"
+                  id="destination"
+                  value={destinationInput}
+                  onChange={(e) => setDestinationInput(e.target.value)}
+                  placeholder="Enter a city or place"
+                  className="w-full px-4 py-3 bg-white/60 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-lg text-gray-800"
+                />
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Budget
+                  </label>
+                  <input
+                    type="range"
+                    min={selectedDestination.avgCost * 0.5}
+                    max={selectedDestination.avgCost * 2}
+                    step={100}
+                    value={budget}
+                    onChange={(e) => setBudget(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="flex justify-between text-sm text-gray-600 mt-1">
+                    <span>${Math.round(selectedDestination.avgCost * 0.5)}</span>
+                    <span>${Math.round(selectedDestination.avgCost * 2)}</span>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-sm text-gray-600">Your Budget</div>
+                  <div className="text-xl font-bold text-gray-800">${budget}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4 bg-white/80 backdrop-blur-md border border-white/40 rounded-2xl p-4 shadow-lg">
+                <label className="block text-sm font-medium text-gray-700 flex-shrink-0">Number of Days</label>
+                <div className="flex items-center space-x-2 flex-grow justify-end">
+                  <button
+                    onClick={() => setNumberOfDays(Math.max(1, numberOfDays - 1))}
+                    className="px-3 py-1 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    value={numberOfDays}
+                    onChange={(e) => setNumberOfDays(Number(e.target.value))}
+                    className="w-16 text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    onClick={() => setNumberOfDays(numberOfDays + 1)}
+                    className="px-3 py-1 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-center pt-4">
+                <button
+                  onClick={handleGenerateItinerary}
+                  disabled={loading}
+                  className="px-8 py-4 bg-gradient-to-r from-orange-400 to-pink-400 text-white rounded-2xl font-bold text-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 w-full"
+                >
+                  {loading ? 'CREATING ITINERARY...' : 'GENERATE ITINERARY'}
+                </button>
+              </div>
+
             </div>
           </div>
         )}
@@ -347,23 +484,83 @@ export default function WanderWisePage() {
                   <span className="text-gray-800">is</span>
                 </h1>
                 
-                <div className="flex items-center space-x-4">
-                  <select className="px-6 py-4 bg-white/80 backdrop-blur-md border border-white/40 rounded-2xl text-lg font-medium shadow-lg focus:outline-none focus:ring-2 focus:ring-orange-400 min-w-[200px]">
-                    <option value="tokyo">🇯🇵 Tokyo</option>
-                    <option value="paris">🇫🇷 Paris</option>
-                    <option value="bali">🇮🇩 Bali</option>
-                    <option value="newyork">🇺🇸 New York</option>
-                  </select>
-                  <div className="relative">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-orange-400 to-pink-400 rounded-full opacity-20 animate-pulse"></div>
-                    <button
-                      onClick={handleQuickDemo}
-                      disabled={loading}
-                      className="relative px-8 py-4 bg-gradient-to-r from-orange-400 to-pink-400 text-white rounded-2xl font-bold text-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50"
-                    >
-                      {loading ? 'CREATING...' : 'EXPLORE'}
-                    </button>
+                {/* Quick Demo Section - Keep this for the home view */}
+                <div className="flex flex-col space-y-4">
+                  {/* Destination Input (for demo purposes) */}
+                  <div>
+                    <label htmlFor="demo-destination" className="block text-sm font-medium text-gray-700 mb-1">Destination</label>
+                    <input
+                      type="text"
+                      id="demo-destination"
+                      value={destinationInput}
+                      onChange={(e) => setDestinationInput(e.target.value)}
+                      placeholder="Enter a city or place"
+                      className="w-full px-4 py-3 bg-white/80 backdrop-blur-md border border-white/40 rounded-2xl text-lg font-medium shadow-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-800"
+                    />
                   </div>
+
+                  {/* Budget Display (for demo purposes) */}
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-1">
+                       <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Budget
+                      </label>
+                      <input
+                        type="range"
+                        min={selectedDestination.avgCost * 0.5}
+                        max={selectedDestination.avgCost * 2}
+                        step={100}
+                        value={budget}
+                        onChange={(e) => setBudget(Number(e.target.value))}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="flex justify-between text-sm text-gray-600 mt-1">
+                        <span>${Math.round(selectedDestination.avgCost * 0.5)}</span>
+                        <span>${Math.round(selectedDestination.avgCost * 2)}</span>
+                      </div>
+                    </div>
+                     <div className="text-right flex-shrink-0">
+                      <div className="text-sm text-gray-600">Your Budget</div>
+                      <div className="text-xl font-bold text-gray-800">${budget}</div>
+                    </div>
+                  </div>
+
+                  {/* Number of Days Counter - New Component */}
+                  <div className="flex items-center space-x-4 bg-white/80 backdrop-blur-md border border-white/40 rounded-2xl p-4 shadow-lg">
+                    <label className="block text-sm font-medium text-gray-700 flex-shrink-0">Number of Days</label>
+                    <div className="flex items-center space-x-2 flex-grow justify-end">
+                      <button
+                        onClick={() => setNumberOfDays(Math.max(1, numberOfDays - 1))}
+                        className="px-3 py-1 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        value={numberOfDays}
+                        onChange={(e) => setNumberOfDays(Number(e.target.value))}
+                        className="w-16 text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <button
+                        onClick={() => setNumberOfDays(numberOfDays + 1)}
+                        className="px-3 py-1 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                   </div>
+
+                  {/* Explore Button - existing code */}
+                   <div className="relative text-center pt-4">
+                     <button
+                       onClick={handleQuickDemo}
+                       disabled={loading}
+                       className="relative px-6 py-4 bg-gradient-to-r from-orange-400 to-pink-400 text-white rounded-2xl font-bold text-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50"
+                     >
+                       {loading ? 'CREATING...' : 'EXPLORE'}
+                     </button>
+                   </div>
                 </div>
               </div>
 
@@ -431,7 +628,7 @@ export default function WanderWisePage() {
                       <div className="text-xs text-gray-600 mb-1">Destination</div>
                       <div className="font-semibold text-gray-800 flex items-center justify-center">
                         <MapPin className="w-3 h-3 mr-1 text-orange-500" />
-                        Tokyo
+                        <span id="selected-destination">{destinationInput || selectedDestination.name.split(',')[0]}</span>
                       </div>
                     </div>
                     <div>
@@ -445,7 +642,7 @@ export default function WanderWisePage() {
                       <div className="text-xs text-gray-600 mb-1">Budget</div>
                       <div className="font-semibold text-gray-800 flex items-center justify-center">
                         <DollarSign className="w-3 h-3 mr-1 text-green-500" />
-                        $2,500
+                        ${budget}
                       </div>
                     </div>
                     <div>
@@ -481,7 +678,7 @@ export default function WanderWisePage() {
                 className="px-8 py-4 bg-white/70 backdrop-blur-md text-gray-800 rounded-2xl font-bold text-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border border-white/40 flex items-center justify-center disabled:opacity-50"
               >
                 <Sparkles className="w-5 h-5 mr-2 text-orange-500" />
-                {loading ? 'Generating...' : 'Try Tokyo Demo'}
+                {loading ? 'Generating...' : 'Try Demo'}
               </button>
             </div>
             <p className="text-sm text-gray-500 mt-4">
