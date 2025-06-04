@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/Button'
 import { TravelPreferences } from '@/types'
-import { MapPin, Calendar, DollarSign, Users, Compass, Zap } from 'lucide-react'
+import { MapPin, Calendar, Compass, Zap } from 'lucide-react'
 
 const travelSchema = z.object({
   origin: z.string().min(1, 'Starting location is required'),
@@ -170,7 +170,7 @@ export function WanderWiseForm({ onSubmit, loading }: Props) {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
             <Zap className="w-5 h-5 mr-2 text-wanderwise-500" />
-            What's your travel style?
+            What is your travel style?
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

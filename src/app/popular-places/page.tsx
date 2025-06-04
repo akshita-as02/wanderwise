@@ -15,6 +15,8 @@ import {
   Compass,
   ArrowRight
 } from 'lucide-react'
+import Link from 'next/link'
+import Image from 'next/image'
 
 interface PopularPlace {
   id: string
@@ -50,10 +52,6 @@ export default function PopularPlacesPage() {
 
   const { user } = useAuth()
 
-  useEffect(() => {
-    fetchPopularPlaces()
-  }, [selectedContinent])
-
   const fetchPopularPlaces = async () => {
     setLoading(true)
     try {
@@ -69,6 +67,10 @@ export default function PopularPlacesPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchPopularPlaces()
+  }, [selectedContinent, fetchPopularPlaces])
 
   const toggleFavorite = (placeId: string) => {
     if (!user) {
@@ -109,8 +111,8 @@ export default function PopularPlacesPage() {
             </div>
             
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="/" className="text-gray-600 hover:text-gray-800 transition-colors">Home</a>
-              <a href="/popular-places" className="text-gray-600 hover:text-gray-800 transition-colors border-b-2 border-orange-400 pb-1">Popular places</a>
+              <Link href="/" className="text-gray-600 hover:text-gray-800 transition-colors">Home</Link>
+              <Link href="/popular-places" className="text-gray-600 hover:text-gray-800 transition-colors border-b-2 border-orange-400 pb-1">Popular places</Link>
             </nav>
 
             <div className="flex items-center space-x-4">
@@ -200,10 +202,11 @@ export default function PopularPlacesPage() {
               <div key={place.id} className="bg-white/70 backdrop-blur-md rounded-2xl overflow-hidden border border-white/40 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden">
-                  <img 
+                  <Image 
                     src={place.imageUrl} 
                     alt={place.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                   
                   {/* Overlay buttons */}

@@ -13,6 +13,34 @@ export interface ItineraryPrompt {
   travelMode: string
 }
 
+interface Activity {
+  name: string
+  description: string
+  location: string
+  timeSlot: {
+    start: string
+    end: string
+  }
+  category: 'sightseeing' | 'food' | 'entertainment' | 'culture' | 'nature' | 'shopping' | 'adventure'
+  estimatedCost: number
+  tips: string[]
+}
+
+interface Day {
+  day: number
+  theme: string
+  activities: Activity[]
+  dailyBudget: number
+  weatherTip: string
+}
+
+interface Itinerary {
+  title: string
+  aiInsights: string[]
+  packingList: string[]
+  days: Day[]
+}
+
 export async function generateItinerary(prompt: ItineraryPrompt) {
   const systemPrompt = `
     You are WanderWise, an expert AI travel planner that creates amazing, personalized travel experiences. 
@@ -91,7 +119,7 @@ export async function generateItinerary(prompt: ItineraryPrompt) {
   }
 }
 
-export async function enhanceItinerary(itinerary: any, userFeedback: string) {
+export async function enhanceItinerary(itinerary: Itinerary, userFeedback: string) {
   const prompt = `
     Enhance this travel itinerary based on user feedback: "${userFeedback}"
     

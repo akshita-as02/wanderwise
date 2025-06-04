@@ -39,8 +39,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Props) {
       }
       onClose()
       resetForm()
-    } catch (err: any) {
-      setError(err.message || 'An error occurred')
+    } catch (err: Error | unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }
@@ -54,8 +54,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Props) {
       await signInWithGoogle()
       onClose()
       resetForm()
-    } catch (err: any) {
-      setError(err.message || 'An error occurred')
+    } catch (err: Error | unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }

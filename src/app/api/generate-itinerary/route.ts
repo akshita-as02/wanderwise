@@ -60,6 +60,27 @@ function generateDummyHotels(destination: string, dayIndex: number) {
   })
 }
 
+interface Activity {
+  name: string
+  description: string
+  location: string
+  timeSlot: {
+    start: string
+    end: string
+  }
+  category: 'sightseeing' | 'food' | 'entertainment' | 'culture' | 'nature' | 'shopping' | 'adventure'
+  estimatedCost: number
+  tips: string[]
+}
+
+interface Day {
+  day: number
+  theme: string
+  activities: Activity[]
+  dailyBudget: number
+  weatherTip: string
+}
+
 export async function POST(request: NextRequest) {
   try {
     const preferences = await request.json()
@@ -176,9 +197,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Process each day and add dummy hotel data
-    const processedDays = aiItinerary.days.map((day: any, index: number) => {
+    const processedDays = aiItinerary.days.map((day: Day, index: number) => {
       // Add unique IDs to activities
-      const processedActivities = day.activities.map((activity: any, actIndex: number) => ({
+      const processedActivities = day.activities.map((activity: Activity, actIndex: number) => ({
         id: `day-${index}-activity-${actIndex}`,
         name: activity.name,
         description: activity.description,
